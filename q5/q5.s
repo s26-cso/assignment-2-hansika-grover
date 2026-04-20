@@ -1,95 +1,92 @@
 .section .data
-filename: .asciz "input.txt"   # file to check
-yes_msg: .asciz "Yes\n"        # output if palindrome
-no_msg:  .asciz "No\n"         # output if not palindrome
+filename: .asciz "input.txt"
+yes_msg: .asciz "Yes\n"
+no_msg:  .asciz "No\n"
 
 .section .bss
-buf1: .space 1                 # buffer for left char
-buf2: .space 1                 # buffer for right char
+buf1: .space 1
+buf2: .space 1
 
 .section .text
-.global _start
+.global main
 
-_start:
+main:
     # open file: openat(AT_FDCWD, "input.txt", O_RDONLY)
-    li a7, 56                  # syscall: openat
-    li a0, -100                # current directory
-    la a1, filename            # filename
-    li a2, 0                   # read-only
+    li a7, 56
+    li a0, -100
+    la a1, filename
+    li a2, 0
     li a3, 0
     ecall
-    mv s0, a0                  # save file descriptor
+    mv s0, a0              # fd
 
     # get file size: lseek(fd, 0, SEEK_END)
-    li a7, 62                  # syscall: lseek
+    li a7, 62
     mv a0, s0
     li a1, 0
-    li a2, 2                   # SEEK_END
+    li a2, 2               # SEEK_END
     ecall
-    mv s1, a0                  # s1 = file size
+    mv s1, a0              # size
 
-    li s2, 0                   # left = 0
-    addi s3, s1, -1            # right = size - 1
+    # ignore trailing newline
+    addi s1, s1, -1
+
+    li s2, 0               # left = 0
+    addi s3, s1, -1        # right = size - 1
 
 loop:
-    bge s2, s3, is_palindrome  # if pointers cross → palindrome
+    bge s2, s3, is_palindrome
 
-    # go to left index
+    # read left char
     li a7, 62
     mv a0, s0
     mv a1, s2
-    li a2, 0                   # SEEK_SET
+    li a2, 0               # SEEK_SET
     ecall
 
-    # read 1 byte at left
-    li a7, 63                  # read
+    li a7, 63
     mv a0, s0
     la a1, buf1
     li a2, 1
     ecall
 
-    # go to right index
+    # read right char
     li a7, 62
     mv a0, s0
     mv a1, s3
-    li a2, 0                   # SEEK_SET
+    li a2, 0               # SEEK_SET
     ecall
 
-    # read 1 byte at right
     li a7, 63
     mv a0, s0
     la a1, buf2
     li a2, 1
     ecall
 
-    # compare characters
+    # compare
     lb t0, buf1
     lb t1, buf2
     bne t0, t1, not_palindrome
 
-    addi s2, s2, 1             # left++
-    addi s3, s3, -1            # right--
+    addi s2, s2, 1
+    addi s3, s3, -1
     j loop
 
 is_palindrome:
-    # print "Yes\n"
-    li a7, 64
-    li a0, 1
+    li a7, 64              # write
+    li a0, 1               # stdout
     la a1, yes_msg
     li a2, 4
     ecall
-    j exit
+    j done
 
 not_palindrome:
-    # print "No\n"
-    li a7, 64
+    li a7, 64              # write
     li a0, 1
     la a1, no_msg
     li a2, 3
     ecall
 
-exit:
-    # exit program
-    li a7, 93
-    li a0, 0
-    ecall
+done:
+    li a0, 0               # return 0
+    ret

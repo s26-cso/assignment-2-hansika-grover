@@ -8,39 +8,37 @@ buf1: .space 1
 buf2: .space 1
 
 .section .text
-.global _start
+.globl main
 
-_start:
-    # open file: openat(AT_FDCWD, "input.txt", O_RDONLY)
+main:
+    # open file
     li a7, 56
     li a0, -100
     la a1, filename
     li a2, 0
     li a3, 0
     ecall
-    mv s0, a0                  # fd
+    mv s0, a0
 
-    # get file size: lseek(fd, 0, SEEK_END)
+    # get size
     li a7, 62
     mv a0, s0
     li a1, 0
     li a2, 2
     ecall
-    mv s1, a0                  # size
+    mv s1, a0
 
-# -------- FIX: TRIM TRAILING \n / \r --------
+# trim newline
 trim_loop:
     addi t0, s1, -1
     blt t0, zero, trim_done
 
-    # seek to last char
     li a7, 62
     mv a0, s0
     mv a1, t0
     li a2, 0
     ecall
 
-    # read 1 byte
     li a7, 63
     mv a0, s0
     la a1, buf1
@@ -48,8 +46,8 @@ trim_loop:
     ecall
 
     lb t1, buf1
-    li t2, 10      # '\n'
-    li t3, 13      # '\r'
+    li t2, 10
+    li t3, 13
 
     beq t1, t2, shrink
     beq t1, t3, shrink
@@ -60,43 +58,38 @@ shrink:
     j trim_loop
 
 trim_done:
-# ------------------------------------------
-
-    li s2, 0                   # left = 0
-    addi s3, s1, -1            # right = size - 1
+    li s2, 0
+    addi s3, s1, -1
 
 loop:
     bge s2, s3, is_palindrome
 
-    # seek left
+    # left
     li a7, 62
     mv a0, s0
     mv a1, s2
     li a2, 0
     ecall
 
-    # read left char
     li a7, 63
     mv a0, s0
     la a1, buf1
     li a2, 1
     ecall
 
-    # seek right
+    # right
     li a7, 62
     mv a0, s0
     mv a1, s3
     li a2, 0
     ecall
 
-    # read right char
     li a7, 63
     mv a0, s0
     la a1, buf2
     li a2, 1
     ecall
 
-    # compare
     lb t0, buf1
     lb t1, buf2
     bne t0, t1, not_palindrome
@@ -111,7 +104,7 @@ is_palindrome:
     la a1, yes_msg
     li a2, 4
     ecall
-    j exit
+    j end
 
 not_palindrome:
     li a7, 64
@@ -120,7 +113,6 @@ not_palindrome:
     li a2, 3
     ecall
 
-exit:
-    li a7, 93
+end:
     li a0, 0
-    ecall
+    ret

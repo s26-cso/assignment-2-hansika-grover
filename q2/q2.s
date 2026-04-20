@@ -104,3 +104,7 @@ done:
     ld ra, 1016(sp)
     addi sp, sp, 1024       # deallocate stack
     ret
+.globl main
+main:
+    li a0, 0
+    ret
